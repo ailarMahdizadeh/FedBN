@@ -61,254 +61,1619 @@ def stratified_split(X,y):
     return (X_train, y_train), (X_test, y_test)
 
 
-def process_mnist():
-    """
-    train:
-    (56000, 28, 28)
-    (56000,)
-    test:
-    (14000, 28, 28)
-    (14000,)
-    """
-    mnist_train = '../data/MNIST/training.pt'
-    mnist_test = '../data/MNIST/test.pt'
-    train = torch.load(mnist_train)
-    test = torch.load(mnist_test)
+def process_Caltech():
+    # Initialize an empty DataFrame to store the subject information
+    subject_info_df = pd.read_csv('../fc/subject_info.csv')
+    X1_all = []
+    X2_all = []
+    Y_all = []
+    mat_folder_x1 = '../../FedBN-master/data/FL_200/Caltech/'
+    mat_folder_x2 = '../../FedBN-master/data/FL_392/Caltech/'
 
-    train_img = train[0].numpy()
-    train_tar = train[1].numpy()
+    for filename in os.listdir(mat_folder_x1):
+        if filename.endswith(".mat"):
+            # Extract the subject ID from the MAT file name
+            subject_id = int(filename.split('.')[0].strip())
+            
+            # Find the corresponding DX_GROUP value in the DataFrame for x1
+            dx_group_x1 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x1) > 0:
+                print(f"x1 - Subject ID {subject_id}: DX_GROUP {dx_group_x1[0]}")
+                
+                # Modify the DX_GROUP value based on your criteria for x1
+                if dx_group_x1[0] == 1:
+                    dx_group_value_x1 = 0
+                elif dx_group_x1[0] == 2:
+                    dx_group_value_x1 = 1
+                else:
+                    dx_group_value_x1 = dx_group_x1[0]  # Keep the value unchanged
+                
+                print(f"x1 - Modified DX_GROUP value: {dx_group_value_x1}")
+                
+                # Load your data from the MAT file for x1
+                data_x1 = scipy.io.loadmat(os.path.join(mat_folder_x1, filename))
+                
+                # Append data to X1_all and modified DX_GROUP value to Y_all
+                X1_all.append(data_x1)
+                Y_all.append(dx_group_value_x1)
+            else:
+                print(f"x1 - Subject ID {subject_id} not found in the subjectinfo.csv file.")
 
-    test_img = test[0].numpy()
-    test_tar = test[1].numpy()
+    # Split the data into training and testing sets for x1
+    X1_train, X1_test, Y_train, Y_test = train_test_split(X1_all, Y_all, test_size=0.2, random_state=42)
 
-    all_img = np.concatenate([train_img, test_img])
-    all_tar = np.concatenate([train_tar, test_tar])
+    # Now, X1_train contains your x1 data from all the processed MAT files, and Y_train contains
+    # the modified DX_GROUP values corresponding to the x1 data.
+
+    # Load x2 data using the same test split indices as x1
+    for filename in os.listdir(mat_folder_x2):
+        if filename.endswith(".mat"):
+            subject_id = int(filename.split('.')[0].strip())
+            
+            dx_group_x2 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x2) > 0:
+                print(f"x2 - Subject ID {subject_id}: DX_GROUP {dx_group_x2[0]}")
+                
+                if dx_group_x2[0] == 1:
+                    dx_group_value_x2 = 0
+                elif dx_group_x2[0] == 2:
+                    dx_group_value_x2 = 1
+                else:
+                    dx_group_value_x2 = dx_group_x2[0]
+                
+                print(f"x2 - Modified DX_GROUP value: {dx_group_value_x2}")
+                
+                data_x2 = scipy.io.loadmat(os.path.join(mat_folder_x2, filename))
+                
+                # Append data to X2_all (use the same test split indices as x1)
+                X2_all.append(data_x2)
+
+    # Split the x2 data into training and testing sets using the same indices as x1_test
+    X2_train, X2_test = train_test_split(X2_all, test_size=len(X1_test), random_state=42)
+
+    # Now, X2_train contains your x2 training data, and X2_test contains your x2 testing data,
+    # both using the same test split indices as x1_test.
+
+    # Save x1 training and testing data with labels
+    with open('../../FedBN-master/data/FL_200/Caltech/train_x1.pkl', 'wb') as f:
+        pickle.dump((X1_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_200/Caltech/test_x1.pkl', 'wb') as f:
+        pickle.dump((X1_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Save x2 training and testing data with labels
+    with open('../../FedBN-master/data/FL_392/Caltech/train_x2.pkl', 'wb') as f:
+        pickle.dump((X2_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_392/Caltech/test_x2.pkl', 'wb') as f:
+        pickle.dump((X2_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Print the shapes of the training and testing data and labels
+    print('Train x1 shape:\t', len(X1_train))
+    print('Train x2 shape:\t', len(X2_train))
+    print('Test x1 shape:\t', len(X1_test))
+    print('Test x2 shape:\t', len(X2_test))
+    print('Train labels:\t', len(Y_train))
+    print('Test labels:\t', len(Y_test))
+
+def process_KKI():
+        # Initialize an empty DataFrame to store the subject information
+    subject_info_df = pd.read_csv('../fc/subject_info.csv')
+    X1_all = []
+    X2_all = []
+    Y_all = []
+    mat_folder_x1 = '../../FedBN-master/data/FL_200/KKI/'
+    mat_folder_x2 = '../../FedBN-master/data/FL_392/KKI/'
+
+    for filename in os.listdir(mat_folder_x1):
+        if filename.endswith(".mat"):
+            # Extract the subject ID from the MAT file name
+            subject_id = int(filename.split('.')[0].strip())
+            
+            # Find the corresponding DX_GROUP value in the DataFrame for x1
+            dx_group_x1 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x1) > 0:
+                print(f"x1 - Subject ID {subject_id}: DX_GROUP {dx_group_x1[0]}")
+                
+                # Modify the DX_GROUP value based on your criteria for x1
+                if dx_group_x1[0] == 1:
+                    dx_group_value_x1 = 0
+                elif dx_group_x1[0] == 2:
+                    dx_group_value_x1 = 1
+                else:
+                    dx_group_value_x1 = dx_group_x1[0]  # Keep the value unchanged
+                
+                print(f"x1 - Modified DX_GROUP value: {dx_group_value_x1}")
+                
+                # Load your data from the MAT file for x1
+                data_x1 = scipy.io.loadmat(os.path.join(mat_folder_x1, filename))
+                
+                # Append data to X1_all and modified DX_GROUP value to Y_all
+                X1_all.append(data_x1)
+                Y_all.append(dx_group_value_x1)
+            else:
+                print(f"x1 - Subject ID {subject_id} not found in the subjectinfo.csv file.")
+
+    # Split the data into training and testing sets for x1
+    X1_train, X1_test, Y_train, Y_test = train_test_split(X1_all, Y_all, test_size=0.2, random_state=42)
+
+    # Now, X1_train contains your x1 data from all the processed MAT files, and Y_train contains
+    # the modified DX_GROUP values corresponding to the x1 data.
+
+    # Load x2 data using the same test split indices as x1
+    for filename in os.listdir(mat_folder_x2):
+        if filename.endswith(".mat"):
+            subject_id = int(filename.split('.')[0].strip())
+            
+            dx_group_x2 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x2) > 0:
+                print(f"x2 - Subject ID {subject_id}: DX_GROUP {dx_group_x2[0]}")
+                
+                if dx_group_x2[0] == 1:
+                    dx_group_value_x2 = 0
+                elif dx_group_x2[0] == 2:
+                    dx_group_value_x2 = 1
+                else:
+                    dx_group_value_x2 = dx_group_x2[0]
+                
+                print(f"x2 - Modified DX_GROUP value: {dx_group_value_x2}")
+                
+                data_x2 = scipy.io.loadmat(os.path.join(mat_folder_x2, filename))
+                
+                # Append data to X2_all (use the same test split indices as x1)
+                X2_all.append(data_x2)
+
+    # Split the x2 data into training and testing sets using the same indices as x1_test
+    X2_train, X2_test = train_test_split(X2_all, test_size=len(X1_test), random_state=42)
+
+    # Now, X2_train contains your x2 training data, and X2_test contains your x2 testing data,
+    # both using the same test split indices as x1_test.
+
+    # Save x1 training and testing data with labels
+    with open('../../FedBN-master/data/FL_200/KKI/train_x1.pkl', 'wb') as f:
+        pickle.dump((X1_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_200/KKI/test_x1.pkl', 'wb') as f:
+        pickle.dump((X1_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Save x2 training and testing data with labels
+    with open('../../FedBN-master/data/FL_392/KKI/train_x2.pkl', 'wb') as f:
+        pickle.dump((X2_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_392/KKI/test_x2.pkl', 'wb') as f:
+        pickle.dump((X2_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Print the shapes of the training and testing data and labels
+    print('Train x1 shape:\t', len(X1_train))
+    print('Train x2 shape:\t', len(X2_train))
+    print('Test x1 shape:\t', len(X1_test))
+    print('Test x2 shape:\t', len(X2_test))
+    print('Train labels:\t', len(Y_train))
+    print('Test labels:\t', len(Y_test))
+
+def process_CMU():
+        # Initialize an empty DataFrame to store the subject information
+    subject_info_df = pd.read_csv('../fc/subject_info.csv')
+    X1_all = []
+    X2_all = []
+    Y_all = []
+    mat_folder_x1 = '../../FedBN-master/data/FL_200/CMU/'
+    mat_folder_x2 = '../../FedBN-master/data/FL_392/CMU/'
+
+    for filename in os.listdir(mat_folder_x1):
+        if filename.endswith(".mat"):
+            # Extract the subject ID from the MAT file name
+            subject_id = int(filename.split('.')[0].strip())
+            
+            # Find the corresponding DX_GROUP value in the DataFrame for x1
+            dx_group_x1 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x1) > 0:
+                print(f"x1 - Subject ID {subject_id}: DX_GROUP {dx_group_x1[0]}")
+                
+                # Modify the DX_GROUP value based on your criteria for x1
+                if dx_group_x1[0] == 1:
+                    dx_group_value_x1 = 0
+                elif dx_group_x1[0] == 2:
+                    dx_group_value_x1 = 1
+                else:
+                    dx_group_value_x1 = dx_group_x1[0]  # Keep the value unchanged
+                
+                print(f"x1 - Modified DX_GROUP value: {dx_group_value_x1}")
+                
+                # Load your data from the MAT file for x1
+                data_x1 = scipy.io.loadmat(os.path.join(mat_folder_x1, filename))
+                
+                # Append data to X1_all and modified DX_GROUP value to Y_all
+                X1_all.append(data_x1)
+                Y_all.append(dx_group_value_x1)
+            else:
+                print(f"x1 - Subject ID {subject_id} not found in the subjectinfo.csv file.")
+
+    # Split the data into training and testing sets for x1
+    X1_train, X1_test, Y_train, Y_test = train_test_split(X1_all, Y_all, test_size=0.2, random_state=42)
+
+    # Now, X1_train contains your x1 data from all the processed MAT files, and Y_train contains
+    # the modified DX_GROUP values corresponding to the x1 data.
+
+    # Load x2 data using the same test split indices as x1
+    for filename in os.listdir(mat_folder_x2):
+        if filename.endswith(".mat"):
+            subject_id = int(filename.split('.')[0].strip())
+            
+            dx_group_x2 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x2) > 0:
+                print(f"x2 - Subject ID {subject_id}: DX_GROUP {dx_group_x2[0]}")
+                
+                if dx_group_x2[0] == 1:
+                    dx_group_value_x2 = 0
+                elif dx_group_x2[0] == 2:
+                    dx_group_value_x2 = 1
+                else:
+                    dx_group_value_x2 = dx_group_x2[0]
+                
+                print(f"x2 - Modified DX_GROUP value: {dx_group_value_x2}")
+                
+                data_x2 = scipy.io.loadmat(os.path.join(mat_folder_x2, filename))
+                
+                # Append data to X2_all (use the same test split indices as x1)
+                X2_all.append(data_x2)
+
+    # Split the x2 data into training and testing sets using the same indices as x1_test
+    X2_train, X2_test = train_test_split(X2_all, test_size=len(X1_test), random_state=42)
+
+    # Now, X2_train contains your x2 training data, and X2_test contains your x2 testing data,
+    # both using the same test split indices as x1_test.
+
+    # Save x1 training and testing data with labels
+    with open('../../FedBN-master/data/FL_200/CMU/train_x1.pkl', 'wb') as f:
+        pickle.dump((X1_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_200/CMU/test_x1.pkl', 'wb') as f:
+        pickle.dump((X1_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Save x2 training and testing data with labels
+    with open('../../FedBN-master/data/FL_392/CMU/train_x2.pkl', 'wb') as f:
+        pickle.dump((X2_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_392/CMU/test_x2.pkl', 'wb') as f:
+        pickle.dump((X2_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Print the shapes of the training and testing data and labels
+    print('Train x1 shape:\t', len(X1_train))
+    print('Train x2 shape:\t', len(X2_train))
+    print('Test x1 shape:\t', len(X1_test))
+    print('Test x2 shape:\t', len(X2_test))
+    print('Train labels:\t', len(Y_train))
+    print('Test labels:\t', len(Y_test))
 
 
-    train_stratified ,test_stratified = stratified_split(all_img, all_tar)
-    print('# After spliting:')
-    print('Train imgs:\t', train_stratified[0].shape)
-    print('Train labels:\t', train_stratified[1].shape)
-    print('Test imgs:\t', test_stratified[0].shape)
-    print('Test labels:\t', test_stratified[1].shape)
+def process_Leuven():
+        # Initialize an empty DataFrame to store the subject information
+    subject_info_df = pd.read_csv('../fc/subject_info.csv')
+    X1_all = []
+    X2_all = []
+    Y_all = []
+    mat_folder_x1 = '../../FedBN-master/data/FL_200/Leuven/'
+    mat_folder_x2 = '../../FedBN-master/data/FL_392/Leuven/'
 
-    with open('../data/MNIST/train.pkl', 'wb') as f:
-        pkl.dump(train_stratified, f, pkl.HIGHEST_PROTOCOL)
+    for filename in os.listdir(mat_folder_x1):
+        if filename.endswith(".mat"):
+            # Extract the subject ID from the MAT file name
+            subject_id = int(filename.split('.')[0].strip())
+            
+            # Find the corresponding DX_GROUP value in the DataFrame for x1
+            dx_group_x1 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x1) > 0:
+                print(f"x1 - Subject ID {subject_id}: DX_GROUP {dx_group_x1[0]}")
+                
+                # Modify the DX_GROUP value based on your criteria for x1
+                if dx_group_x1[0] == 1:
+                    dx_group_value_x1 = 0
+                elif dx_group_x1[0] == 2:
+                    dx_group_value_x1 = 1
+                else:
+                    dx_group_value_x1 = dx_group_x1[0]  # Keep the value unchanged
+                
+                print(f"x1 - Modified DX_GROUP value: {dx_group_value_x1}")
+                
+                # Load your data from the MAT file for x1
+                data_x1 = scipy.io.loadmat(os.path.join(mat_folder_x1, filename))
+                
+                # Append data to X1_all and modified DX_GROUP value to Y_all
+                X1_all.append(data_x1)
+                Y_all.append(dx_group_value_x1)
+            else:
+                print(f"x1 - Subject ID {subject_id} not found in the subjectinfo.csv file.")
 
-    with open('../data/MNIST/test.pkl', 'wb') as f:
-        pkl.dump(test_stratified, f, pkl.HIGHEST_PROTOCOL)
+    # Split the data into training and testing sets for x1
+    X1_train, X1_test, Y_train, Y_test = train_test_split(X1_all, Y_all, test_size=0.2, random_state=42)
 
-def process_svhn():
-    """
-    train:
-    (79431, 32, 32, 3)
-    (79431,)
-    test:
-    (19858, 32, 32, 3)
-    (19858,)
-    """
-    train = scio.loadmat('../data/SVHN/train_32x32.mat')
-    test = scio.loadmat('../data/SVHN/test_32x32.mat')
+    # Now, X1_train contains your x1 data from all the processed MAT files, and Y_train contains
+    # the modified DX_GROUP values corresponding to the x1 data.
 
-    train_img = train['X']
-    train_tar = train['y'].astype(np.int64).squeeze()
+    # Load x2 data using the same test split indices as x1
+    for filename in os.listdir(mat_folder_x2):
+        if filename.endswith(".mat"):
+            subject_id = int(filename.split('.')[0].strip())
+            
+            dx_group_x2 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x2) > 0:
+                print(f"x2 - Subject ID {subject_id}: DX_GROUP {dx_group_x2[0]}")
+                
+                if dx_group_x2[0] == 1:
+                    dx_group_value_x2 = 0
+                elif dx_group_x2[0] == 2:
+                    dx_group_value_x2 = 1
+                else:
+                    dx_group_value_x2 = dx_group_x2[0]
+                
+                print(f"x2 - Modified DX_GROUP value: {dx_group_value_x2}")
+                
+                data_x2 = scipy.io.loadmat(os.path.join(mat_folder_x2, filename))
+                
+                # Append data to X2_all (use the same test split indices as x1)
+                X2_all.append(data_x2)
 
-    test_img = test['X']
-    test_tar = test['y'].astype(np.int64).squeeze()
+    # Split the x2 data into training and testing sets using the same indices as x1_test
+    X2_train, X2_test = train_test_split(X2_all, test_size=len(X1_test), random_state=42)
 
-    train_img = np.transpose(train_img, (3, 0, 1, 2))
-    test_img = np.transpose(test_img, (3, 0, 1, 2))
+    # Now, X2_train contains your x2 training data, and X2_test contains your x2 testing data,
+    # both using the same test split indices as x1_test.
 
-    np.place(train_tar, train_tar == 10, 0)
-    np.place(test_tar, test_tar == 10, 0)
+    # Save x1 training and testing data with labels
+    with open('../../FedBN-master/data/FL_200/Leuven/train_x1.pkl', 'wb') as f:
+        pickle.dump((X1_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
 
-    all_img = np.concatenate([train_img, test_img])
-    all_tar = np.concatenate([train_tar, test_tar])
+    with open('../../FedBN-master/data/FL_200/Leuven/test_x1.pkl', 'wb') as f:
+        pickle.dump((X1_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
 
-    train_stratified, test_stratified = stratified_split(all_img, all_tar)
-    print('# After spliting:')
-    print('Train imgs:\t', train_stratified[0].shape)
-    print('Train labels:\t', train_stratified[1].shape)
-    print('Test imgs:\t', test_stratified[0].shape)
-    print('Test labels:\t', test_stratified[1].shape)
+    # Save x2 training and testing data with labels
+    with open('../../FedBN-master/data/FL_392/Leuven/train_x2.pkl', 'wb') as f:
+        pickle.dump((X2_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
 
-    with open('../data/SVHN/train.pkl', 'wb') as f:
-        pkl.dump(train_stratified, f, pkl.HIGHEST_PROTOCOL)
+    with open('../../FedBN-master/data/FL_392/Leuven/test_x2.pkl', 'wb') as f:
+        pickle.dump((X2_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
 
-    with open('../data/SVHN/test.pkl', 'wb') as f:
-        pkl.dump(test_stratified, f, pkl.HIGHEST_PROTOCOL)
+    # Print the shapes of the training and testing data and labels
+    print('Train x1 shape:\t', len(X1_train))
+    print('Train x2 shape:\t', len(X2_train))
+    print('Test x1 shape:\t', len(X1_test))
+    print('Test x2 shape:\t', len(X2_test))
+    print('Train labels:\t', len(Y_train))
+    print('Test labels:\t', len(Y_test))
 
-def process_usps():
-    """
-    train:
-    (7438, 16, 16)
-    (7438,)
-    test:
-    (1860, 16, 16)
-    (1860,)
-    :return:
-    """
-    import bz2
-    train_path = '../data/USPS/usps.bz2'
-    with bz2.open(train_path) as fp:
-        raw_data = [l.decode().split() for l in fp.readlines()]
-    imgs = [[x.split(':')[-1] for x in data[1:]] for data in raw_data]
-    imgs = np.asarray(imgs, dtype=np.float32).reshape((-1, 16, 16))
-    imgs = ((imgs + 1) / 2 * 255).astype(dtype=np.uint8)
-    targets = [int(d[0]) - 1 for d in raw_data]
+def process_NYU():
+        # Initialize an empty DataFrame to store the subject information
+    subject_info_df = pd.read_csv('../fc/subject_info.csv')
+    X1_all = []
+    X2_all = []
+    Y_all = []
+    mat_folder_x1 = '../../FedBN-master/data/FL_200/NYU/'
+    mat_folder_x2 = '../../FedBN-master/data/FL_392/NYU/'
 
-    train_img = imgs
-    train_tar = np.array(targets)
+    for filename in os.listdir(mat_folder_x1):
+        if filename.endswith(".mat"):
+            # Extract the subject ID from the MAT file name
+            subject_id = int(filename.split('.')[0].strip())
+            
+            # Find the corresponding DX_GROUP value in the DataFrame for x1
+            dx_group_x1 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x1) > 0:
+                print(f"x1 - Subject ID {subject_id}: DX_GROUP {dx_group_x1[0]}")
+                
+                # Modify the DX_GROUP value based on your criteria for x1
+                if dx_group_x1[0] == 1:
+                    dx_group_value_x1 = 0
+                elif dx_group_x1[0] == 2:
+                    dx_group_value_x1 = 1
+                else:
+                    dx_group_value_x1 = dx_group_x1[0]  # Keep the value unchanged
+                
+                print(f"x1 - Modified DX_GROUP value: {dx_group_value_x1}")
+                
+                # Load your data from the MAT file for x1
+                data_x1 = scipy.io.loadmat(os.path.join(mat_folder_x1, filename))
+                
+                # Append data to X1_all and modified DX_GROUP value to Y_all
+                X1_all.append(data_x1)
+                Y_all.append(dx_group_value_x1)
+            else:
+                print(f"x1 - Subject ID {subject_id} not found in the subjectinfo.csv file.")
 
-    test_path = '../data/USPS/usps.t.bz2'
-    with bz2.open(test_path) as fp:
-        raw_data = [l.decode().split() for l in fp.readlines()]
-    imgs = [[x.split(':')[-1] for x in data[1:]] for data in raw_data]
-    imgs = np.asarray(imgs, dtype=np.float32).reshape((-1, 16, 16))
-    imgs = ((imgs + 1) / 2 * 255).astype(dtype=np.uint8)
-    targets = [int(d[0]) - 1 for d in raw_data]
+    # Split the data into training and testing sets for x1
+    X1_train, X1_test, Y_train, Y_test = train_test_split(X1_all, Y_all, test_size=0.2, random_state=42)
 
-    test_img = imgs
-    test_tar = np.array(targets)
+    # Now, X1_train contains your x1 data from all the processed MAT files, and Y_train contains
+    # the modified DX_GROUP values corresponding to the x1 data.
 
-    all_img = np.concatenate([train_img, test_img])
-    all_tar = np.concatenate([train_tar, test_tar])
+    # Load x2 data using the same test split indices as x1
+    for filename in os.listdir(mat_folder_x2):
+        if filename.endswith(".mat"):
+            subject_id = int(filename.split('.')[0].strip())
+            
+            dx_group_x2 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x2) > 0:
+                print(f"x2 - Subject ID {subject_id}: DX_GROUP {dx_group_x2[0]}")
+                
+                if dx_group_x2[0] == 1:
+                    dx_group_value_x2 = 0
+                elif dx_group_x2[0] == 2:
+                    dx_group_value_x2 = 1
+                else:
+                    dx_group_value_x2 = dx_group_x2[0]
+                
+                print(f"x2 - Modified DX_GROUP value: {dx_group_value_x2}")
+                
+                data_x2 = scipy.io.loadmat(os.path.join(mat_folder_x2, filename))
+                
+                # Append data to X2_all (use the same test split indices as x1)
+                X2_all.append(data_x2)
 
-    train_stratified, test_stratified = stratified_split(all_img, all_tar)
-    print('# After spliting:')
-    print('Train imgs:\t', train_stratified[0].shape)
-    print('Train labels:\t', train_stratified[1].shape)
-    print('Test imgs:\t', test_stratified[0].shape)
-    print('Test labels:\t', test_stratified[1].shape)
+    # Split the x2 data into training and testing sets using the same indices as x1_test
+    X2_train, X2_test = train_test_split(X2_all, test_size=len(X1_test), random_state=42)
 
-    with open('../data/USPS/train.pkl', 'wb') as f:
-        pkl.dump(train_stratified, f, pkl.HIGHEST_PROTOCOL)
-    
-    with open('../data/USPS/test.pkl', 'wb') as f:
-        pkl.dump(test_stratified, f, pkl.HIGHEST_PROTOCOL)
+    # Now, X2_train contains your x2 training data, and X2_test contains your x2 testing data,
+    # both using the same test split indices as x1_test.
+
+    # Save x1 training and testing data with labels
+    with open('../../FedBN-master/data/FL_200/NYU/train_x1.pkl', 'wb') as f:
+        pickle.dump((X1_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_200/NYU/test_x1.pkl', 'wb') as f:
+        pickle.dump((X1_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Save x2 training and testing data with labels
+    with open('../../FedBN-master/data/FL_392/NYU/train_x2.pkl', 'wb') as f:
+        pickle.dump((X2_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_392/NYU/test_x2.pkl', 'wb') as f:
+        pickle.dump((X2_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Print the shapes of the training and testing data and labels
+    print('Train x1 shape:\t', len(X1_train))
+    print('Train x2 shape:\t', len(X2_train))
+    print('Test x1 shape:\t', len(X1_test))
+    print('Test x2 shape:\t', len(X2_test))
+    print('Train labels:\t', len(Y_train))
+    print('Test labels:\t', len(Y_test))
+
+def process_MaxMun():
+        # Initialize an empty DataFrame to store the subject information
+    subject_info_df = pd.read_csv('../fc/subject_info.csv')
+    X1_all = []
+    X2_all = []
+    Y_all = []
+    mat_folder_x1 = '../../FedBN-master/data/FL_200/MaxMun/'
+    mat_folder_x2 = '../../FedBN-master/data/FL_392/MaxMun/'
+
+    for filename in os.listdir(mat_folder_x1):
+        if filename.endswith(".mat"):
+            # Extract the subject ID from the MAT file name
+            subject_id = int(filename.split('.')[0].strip())
+            
+            # Find the corresponding DX_GROUP value in the DataFrame for x1
+            dx_group_x1 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x1) > 0:
+                print(f"x1 - Subject ID {subject_id}: DX_GROUP {dx_group_x1[0]}")
+                
+                # Modify the DX_GROUP value based on your criteria for x1
+                if dx_group_x1[0] == 1:
+                    dx_group_value_x1 = 0
+                elif dx_group_x1[0] == 2:
+                    dx_group_value_x1 = 1
+                else:
+                    dx_group_value_x1 = dx_group_x1[0]  # Keep the value unchanged
+                
+                print(f"x1 - Modified DX_GROUP value: {dx_group_value_x1}")
+                
+                # Load your data from the MAT file for x1
+                data_x1 = scipy.io.loadmat(os.path.join(mat_folder_x1, filename))
+                
+                # Append data to X1_all and modified DX_GROUP value to Y_all
+                X1_all.append(data_x1)
+                Y_all.append(dx_group_value_x1)
+            else:
+                print(f"x1 - Subject ID {subject_id} not found in the subjectinfo.csv file.")
+
+    # Split the data into training and testing sets for x1
+    X1_train, X1_test, Y_train, Y_test = train_test_split(X1_all, Y_all, test_size=0.2, random_state=42)
+
+    # Now, X1_train contains your x1 data from all the processed MAT files, and Y_train contains
+    # the modified DX_GROUP values corresponding to the x1 data.
+
+    # Load x2 data using the same test split indices as x1
+    for filename in os.listdir(mat_folder_x2):
+        if filename.endswith(".mat"):
+            subject_id = int(filename.split('.')[0].strip())
+            
+            dx_group_x2 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x2) > 0:
+                print(f"x2 - Subject ID {subject_id}: DX_GROUP {dx_group_x2[0]}")
+                
+                if dx_group_x2[0] == 1:
+                    dx_group_value_x2 = 0
+                elif dx_group_x2[0] == 2:
+                    dx_group_value_x2 = 1
+                else:
+                    dx_group_value_x2 = dx_group_x2[0]
+                
+                print(f"x2 - Modified DX_GROUP value: {dx_group_value_x2}")
+                
+                data_x2 = scipy.io.loadmat(os.path.join(mat_folder_x2, filename))
+                
+                # Append data to X2_all (use the same test split indices as x1)
+                X2_all.append(data_x2)
+
+    # Split the x2 data into training and testing sets using the same indices as x1_test
+    X2_train, X2_test = train_test_split(X2_all, test_size=len(X1_test), random_state=42)
+
+    # Now, X2_train contains your x2 training data, and X2_test contains your x2 testing data,
+    # both using the same test split indices as x1_test.
+
+    # Save x1 training and testing data with labels
+    with open('../../FedBN-master/data/FL_200/MaxMun/train_x1.pkl', 'wb') as f:
+        pickle.dump((X1_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_200/MaxMun/test_x1.pkl', 'wb') as f:
+        pickle.dump((X1_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Save x2 training and testing data with labels
+    with open('../../FedBN-master/data/FL_392/MaxMun/train_x2.pkl', 'wb') as f:
+        pickle.dump((X2_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_392/MaxMun/test_x2.pkl', 'wb') as f:
+        pickle.dump((X2_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Print the shapes of the training and testing data and labels
+    print('Train x1 shape:\t', len(X1_train))
+    print('Train x2 shape:\t', len(X2_train))
+    print('Test x1 shape:\t', len(X1_test))
+    print('Test x2 shape:\t', len(X2_test))
+    print('Train labels:\t', len(Y_train))
+    print('Test labels:\t', len(Y_test))
 
 
-def process_synth():
-    """
-    (391162, 32, 32, 3)
-    (391162,)
-    (97791, 32, 32, 3)
-    (97791,)
-    """
-    train = scio.loadmat('../data/SynthDigits/synth_train_32x32.mat')
-    test = scio.loadmat('../data/SynthDigits/synth_test_32x32.mat')
+def process_OHSU():
+        # Initialize an empty DataFrame to store the subject information
+    subject_info_df = pd.read_csv('../fc/subject_info.csv')
+    X1_all = []
+    X2_all = []
+    Y_all = []
+    mat_folder_x1 = '../../FedBN-master/data/FL_200/OHSU/'
+    mat_folder_x2 = '../../FedBN-master/data/FL_392/OHSU/'
 
-    train_img = train['X']
-    train_tar = train['y'].astype(np.int64).squeeze()
+    for filename in os.listdir(mat_folder_x1):
+        if filename.endswith(".mat"):
+            # Extract the subject ID from the MAT file name
+            subject_id = int(filename.split('.')[0].strip())
+            
+            # Find the corresponding DX_GROUP value in the DataFrame for x1
+            dx_group_x1 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x1) > 0:
+                print(f"x1 - Subject ID {subject_id}: DX_GROUP {dx_group_x1[0]}")
+                
+                # Modify the DX_GROUP value based on your criteria for x1
+                if dx_group_x1[0] == 1:
+                    dx_group_value_x1 = 0
+                elif dx_group_x1[0] == 2:
+                    dx_group_value_x1 = 1
+                else:
+                    dx_group_value_x1 = dx_group_x1[0]  # Keep the value unchanged
+                
+                print(f"x1 - Modified DX_GROUP value: {dx_group_value_x1}")
+                
+                # Load your data from the MAT file for x1
+                data_x1 = scipy.io.loadmat(os.path.join(mat_folder_x1, filename))
+                
+                # Append data to X1_all and modified DX_GROUP value to Y_all
+                X1_all.append(data_x1)
+                Y_all.append(dx_group_value_x1)
+            else:
+                print(f"x1 - Subject ID {subject_id} not found in the subjectinfo.csv file.")
 
-    test_img = test['X']
-    test_tar = test['y'].astype(np.int64).squeeze()
+    # Split the data into training and testing sets for x1
+    X1_train, X1_test, Y_train, Y_test = train_test_split(X1_all, Y_all, test_size=0.2, random_state=42)
 
-    train_img = np.transpose(train_img, (3,0,1,2))
-    test_img = np.transpose(test_img, (3,0,1,2))
+    # Now, X1_train contains your x1 data from all the processed MAT files, and Y_train contains
+    # the modified DX_GROUP values corresponding to the x1 data.
 
-    all_img = np.concatenate([train_img, test_img])
-    all_tar = np.concatenate([train_tar, test_tar])
+    # Load x2 data using the same test split indices as x1
+    for filename in os.listdir(mat_folder_x2):
+        if filename.endswith(".mat"):
+            subject_id = int(filename.split('.')[0].strip())
+            
+            dx_group_x2 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x2) > 0:
+                print(f"x2 - Subject ID {subject_id}: DX_GROUP {dx_group_x2[0]}")
+                
+                if dx_group_x2[0] == 1:
+                    dx_group_value_x2 = 0
+                elif dx_group_x2[0] == 2:
+                    dx_group_value_x2 = 1
+                else:
+                    dx_group_value_x2 = dx_group_x2[0]
+                
+                print(f"x2 - Modified DX_GROUP value: {dx_group_value_x2}")
+                
+                data_x2 = scipy.io.loadmat(os.path.join(mat_folder_x2, filename))
+                
+                # Append data to X2_all (use the same test split indices as x1)
+                X2_all.append(data_x2)
 
-    train_stratified, test_stratified = stratified_split(all_img, all_tar)
-    print('# After spliting:')
-    print('Train imgs:\t', train_stratified[0].shape)
-    print('Train labels:\t', train_stratified[1].shape)
-    print('Test imgs:\t', test_stratified[0].shape)
-    print('Test labels:\t', test_stratified[1].shape)
+    # Split the x2 data into training and testing sets using the same indices as x1_test
+    X2_train, X2_test = train_test_split(X2_all, test_size=len(X1_test), random_state=42)
 
+    # Now, X2_train contains your x2 training data, and X2_test contains your x2 testing data,
+    # both using the same test split indices as x1_test.
 
-    with open('../data/SynthDigits/train.pkl', 'wb') as f:
-        pkl.dump(train_stratified, f, pkl.HIGHEST_PROTOCOL)
+    # Save x1 training and testing data with labels
+    with open('../../FedBN-master/data/FL_200/OHSU/train_x1.pkl', 'wb') as f:
+        pickle.dump((X1_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
 
-    with open('../data/SynthDigits/test.pkl', 'wb') as f:
-        pkl.dump(test_stratified, f, pkl.HIGHEST_PROTOCOL)
+    with open('../../FedBN-master/data/FL_200/OHSU/test_x1.pkl', 'wb') as f:
+        pickle.dump((X1_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
 
+    # Save x2 training and testing data with labels
+    with open('../../FedBN-master/data/FL_392/OHSU/train_x2.pkl', 'wb') as f:
+        pickle.dump((X2_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
 
-def process_mnistm():
-    """
-    (56000, 28, 28, 3)
-    (56000,)
-    (14000, 28, 28, 3)
-    (14000,)
-    :return:
-    """
-    data = np.load('../data/MNIST_M/mnistm_data.pkl', allow_pickle=True)
-    train_img = data['train']
-    train_tar = data['train_label']
-    valid_img = data['valid']
-    valid_tar = data['valid_label']
-    test_img = data['test']
-    test_tar = data['test_label']
+    with open('../../FedBN-master/data/FL_392/OHSU/test_x2.pkl', 'wb') as f:
+        pickle.dump((X2_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
 
-    all_img = np.concatenate([train_img, valid_img, test_img])
-    all_tar = np.concatenate([train_tar, valid_tar, test_tar])
+    # Print the shapes of the training and testing data and labels
+    print('Train x1 shape:\t', len(X1_train))
+    print('Train x2 shape:\t', len(X2_train))
+    print('Test x1 shape:\t', len(X1_test))
+    print('Test x2 shape:\t', len(X2_test))
+    print('Train labels:\t', len(Y_train))
+    print('Test labels:\t', len(Y_test))
 
-    train_stratified, test_stratified = stratified_split(all_img, all_tar)
-    print('# After spliting:')
-    print('Train imgs:\t', train_stratified[0].shape)
-    print('Train labels:\t', train_stratified[1].shape)
-    print('Test imgs:\t', test_stratified[0].shape)
-    print('Test labels:\t', test_stratified[1].shape)
+def process_Olin():
+        # Initialize an empty DataFrame to store the subject information
+    subject_info_df = pd.read_csv('../fc/subject_info.csv')
+    X1_all = []
+    X2_all = []
+    Y_all = []
+    mat_folder_x1 = '../../FedBN-master/data/FL_200/Olin/'
+    mat_folder_x2 = '../../FedBN-master/data/FL_392/Olin/'
 
-    with open('../data/MNIST_M/train.pkl', 'wb') as f:
-        pkl.dump(train_stratified, f, pkl.HIGHEST_PROTOCOL)
+    for filename in os.listdir(mat_folder_x1):
+        if filename.endswith(".mat"):
+            # Extract the subject ID from the MAT file name
+            subject_id = int(filename.split('.')[0].strip())
+            
+            # Find the corresponding DX_GROUP value in the DataFrame for x1
+            dx_group_x1 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x1) > 0:
+                print(f"x1 - Subject ID {subject_id}: DX_GROUP {dx_group_x1[0]}")
+                
+                # Modify the DX_GROUP value based on your criteria for x1
+                if dx_group_x1[0] == 1:
+                    dx_group_value_x1 = 0
+                elif dx_group_x1[0] == 2:
+                    dx_group_value_x1 = 1
+                else:
+                    dx_group_value_x1 = dx_group_x1[0]  # Keep the value unchanged
+                
+                print(f"x1 - Modified DX_GROUP value: {dx_group_value_x1}")
+                
+                # Load your data from the MAT file for x1
+                data_x1 = scipy.io.loadmat(os.path.join(mat_folder_x1, filename))
+                
+                # Append data to X1_all and modified DX_GROUP value to Y_all
+                X1_all.append(data_x1)
+                Y_all.append(dx_group_value_x1)
+            else:
+                print(f"x1 - Subject ID {subject_id} not found in the subjectinfo.csv file.")
 
-    with open('../data/MNIST_M/test.pkl', 'wb') as f:
-        pkl.dump(test_stratified, f, pkl.HIGHEST_PROTOCOL)
+    # Split the data into training and testing sets for x1
+    X1_train, X1_test, Y_train, Y_test = train_test_split(X1_all, Y_all, test_size=0.2, random_state=42)
 
+    # Now, X1_train contains your x1 data from all the processed MAT files, and Y_train contains
+    # the modified DX_GROUP values corresponding to the x1 data.
 
+    # Load x2 data using the same test split indices as x1
+    for filename in os.listdir(mat_folder_x2):
+        if filename.endswith(".mat"):
+            subject_id = int(filename.split('.')[0].strip())
+            
+            dx_group_x2 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x2) > 0:
+                print(f"x2 - Subject ID {subject_id}: DX_GROUP {dx_group_x2[0]}")
+                
+                if dx_group_x2[0] == 1:
+                    dx_group_value_x2 = 0
+                elif dx_group_x2[0] == 2:
+                    dx_group_value_x2 = 1
+                else:
+                    dx_group_value_x2 = dx_group_x2[0]
+                
+                print(f"x2 - Modified DX_GROUP value: {dx_group_value_x2}")
+                
+                data_x2 = scipy.io.loadmat(os.path.join(mat_folder_x2, filename))
+                
+                # Append data to X2_all (use the same test split indices as x1)
+                X2_all.append(data_x2)
 
+    # Split the x2 data into training and testing sets using the same indices as x1_test
+    X2_train, X2_test = train_test_split(X2_all, test_size=len(X1_test), random_state=42)
 
-def split(data_path, percentage=0.1):
-    """
-    split each single dataset into multiple partitions for client scaling training
-    each part remain the same size according to the smallest datasize (i.e. 743)
-    """
-    images, labels = np.load(os.path.join(data_path, 'train.pkl'), allow_pickle=True)
-    part_len = 743.8
-    part_num = int(1./percentage)
-    
-    for num in range(part_num):
-        images_part = images[int(part_len*num):int(part_len*(num+1)),:,:]
-        labels_part = labels[int(part_len*num):int(part_len*(num+1))]
+    # Now, X2_train contains your x2 training data, and X2_test contains your x2 testing data,
+    # both using the same test split indices as x1_test.
 
-        save_path = os.path.join(data_path, 'partitions')
-        if not os.path.exists(save_path):
-            os.makedirs(save_path)
-        with open(os.path.join(save_path,'train_part{}.pkl'.format(num)), 'wb') as f:
-            pkl.dump((images_part, labels_part), f, pkl.HIGHEST_PROTOCOL)
+    # Save x1 training and testing data with labels
+    with open('../../FedBN-master/data/FL_200/Olin/train_x1.pkl', 'wb') as f:
+        pickle.dump((X1_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
 
+    with open('../../FedBN-master/data/FL_200/Olin/test_x1.pkl', 'wb') as f:
+        pickle.dump((X1_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
 
-if __name__  == '__main__':
-    file_id = '1P8g7uHyVxQJPcBKE8TAzfdKbimpRbj0I'
-    destination = '../data/data.zip'
-    download_file_from_google_drive(file_id, destination)
-    print('Extracting...')
-    with zipfile.ZipFile(destination, 'r') as zip_ref:
-        for file in tqdm(iterable=zip_ref.namelist(), total=len(zip_ref.namelist())):
-            zip_ref.extract(member=file, path=os.path.dirname(destination))
-    print('Processing...')        
-    print('--------MNIST---------')
-    process_mnist()
-    print('--------SVHN---------')
-    process_svhn()
-    print('--------USPS---------')
-    process_usps()
-    print('--------SynthDigits---------')
-    process_synth()
-    print('--------MNIST-M---------')
-    process_mnistm()
+    # Save x2 training and testing data with labels
+    with open('../../FedBN-master/data/FL_392/Olin/train_x2.pkl', 'wb') as f:
+        pickle.dump((X2_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
 
-    
-    base_paths = [
-        '../data/MNIST',
-        '../data/SVHN',
-        '../data/USPS',
-        '../data/SynthDigits',
-        '../data/MNIST_M'
-    ]
-    for path in base_paths:
-        print(f'Spliting {os.path.basename(path)}')
-        split(path)
+    with open('../../FedBN-master/data/FL_392/Olin/test_x2.pkl', 'wb') as f:
+        pickle.dump((X2_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
 
+    # Print the shapes of the training and testing data and labels
+    print('Train x1 shape:\t', len(X1_train))
+    print('Train x2 shape:\t', len(X2_train))
+    print('Test x1 shape:\t', len(X1_test))
+    print('Test x2 shape:\t', len(X2_test))
+    print('Train labels:\t', len(Y_train))
+    print('Test labels:\t', len(Y_test))
+
+def process_Pitt():
+        # Initialize an empty DataFrame to store the subject information
+    subject_info_df = pd.read_csv('../fc/subject_info.csv')
+    X1_all = []
+    X2_all = []
+    Y_all = []
+    mat_folder_x1 = '../../FedBN-master/data/FL_200/Pitt/'
+    mat_folder_x2 = '../../FedBN-master/data/FL_392/Pitt/'
+
+    for filename in os.listdir(mat_folder_x1):
+        if filename.endswith(".mat"):
+            # Extract the subject ID from the MAT file name
+            subject_id = int(filename.split('.')[0].strip())
+            
+            # Find the corresponding DX_GROUP value in the DataFrame for x1
+            dx_group_x1 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x1) > 0:
+                print(f"x1 - Subject ID {subject_id}: DX_GROUP {dx_group_x1[0]}")
+                
+                # Modify the DX_GROUP value based on your criteria for x1
+                if dx_group_x1[0] == 1:
+                    dx_group_value_x1 = 0
+                elif dx_group_x1[0] == 2:
+                    dx_group_value_x1 = 1
+                else:
+                    dx_group_value_x1 = dx_group_x1[0]  # Keep the value unchanged
+                
+                print(f"x1 - Modified DX_GROUP value: {dx_group_value_x1}")
+                
+                # Load your data from the MAT file for x1
+                data_x1 = scipy.io.loadmat(os.path.join(mat_folder_x1, filename))
+                
+                # Append data to X1_all and modified DX_GROUP value to Y_all
+                X1_all.append(data_x1)
+                Y_all.append(dx_group_value_x1)
+            else:
+                print(f"x1 - Subject ID {subject_id} not found in the subjectinfo.csv file.")
+
+    # Split the data into training and testing sets for x1
+    X1_train, X1_test, Y_train, Y_test = train_test_split(X1_all, Y_all, test_size=0.2, random_state=42)
+
+    # Now, X1_train contains your x1 data from all the processed MAT files, and Y_train contains
+    # the modified DX_GROUP values corresponding to the x1 data.
+
+    # Load x2 data using the same test split indices as x1
+    for filename in os.listdir(mat_folder_x2):
+        if filename.endswith(".mat"):
+            subject_id = int(filename.split('.')[0].strip())
+            
+            dx_group_x2 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x2) > 0:
+                print(f"x2 - Subject ID {subject_id}: DX_GROUP {dx_group_x2[0]}")
+                
+                if dx_group_x2[0] == 1:
+                    dx_group_value_x2 = 0
+                elif dx_group_x2[0] == 2:
+                    dx_group_value_x2 = 1
+                else:
+                    dx_group_value_x2 = dx_group_x2[0]
+                
+                print(f"x2 - Modified DX_GROUP value: {dx_group_value_x2}")
+                
+                data_x2 = scipy.io.loadmat(os.path.join(mat_folder_x2, filename))
+                
+                # Append data to X2_all (use the same test split indices as x1)
+                X2_all.append(data_x2)
+
+    # Split the x2 data into training and testing sets using the same indices as x1_test
+    X2_train, X2_test = train_test_split(X2_all, test_size=len(X1_test), random_state=42)
+
+    # Now, X2_train contains your x2 training data, and X2_test contains your x2 testing data,
+    # both using the same test split indices as x1_test.
+
+    # Save x1 training and testing data with labels
+    with open('../../FedBN-master/data/FL_200/Pitt/train_x1.pkl', 'wb') as f:
+        pickle.dump((X1_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_200/Pitt/test_x1.pkl', 'wb') as f:
+        pickle.dump((X1_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Save x2 training and testing data with labels
+    with open('../../FedBN-master/data/FL_392/Pitt/train_x2.pkl', 'wb') as f:
+        pickle.dump((X2_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_392/Pitt/test_x2.pkl', 'wb') as f:
+        pickle.dump((X2_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Print the shapes of the training and testing data and labels
+    print('Train x1 shape:\t', len(X1_train))
+    print('Train x2 shape:\t', len(X2_train))
+    print('Test x1 shape:\t', len(X1_test))
+    print('Test x2 shape:\t', len(X2_test))
+    print('Train labels:\t', len(Y_train))
+    print('Test labels:\t', len(Y_test))
+
+def process_SBL():
+        # Initialize an empty DataFrame to store the subject information
+    subject_info_df = pd.read_csv('../fc/subject_info.csv')
+    X1_all = []
+    X2_all = []
+    Y_all = []
+    mat_folder_x1 = '../../FedBN-master/data/FL_200/SBL/'
+    mat_folder_x2 = '../../FedBN-master/data/FL_392/SBL/'
+
+    for filename in os.listdir(mat_folder_x1):
+        if filename.endswith(".mat"):
+            # Extract the subject ID from the MAT file name
+            subject_id = int(filename.split('.')[0].strip())
+            
+            # Find the corresponding DX_GROUP value in the DataFrame for x1
+            dx_group_x1 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x1) > 0:
+                print(f"x1 - Subject ID {subject_id}: DX_GROUP {dx_group_x1[0]}")
+                
+                # Modify the DX_GROUP value based on your criteria for x1
+                if dx_group_x1[0] == 1:
+                    dx_group_value_x1 = 0
+                elif dx_group_x1[0] == 2:
+                    dx_group_value_x1 = 1
+                else:
+                    dx_group_value_x1 = dx_group_x1[0]  # Keep the value unchanged
+                
+                print(f"x1 - Modified DX_GROUP value: {dx_group_value_x1}")
+                
+                # Load your data from the MAT file for x1
+                data_x1 = scipy.io.loadmat(os.path.join(mat_folder_x1, filename))
+                
+                # Append data to X1_all and modified DX_GROUP value to Y_all
+                X1_all.append(data_x1)
+                Y_all.append(dx_group_value_x1)
+            else:
+                print(f"x1 - Subject ID {subject_id} not found in the subjectinfo.csv file.")
+
+    # Split the data into training and testing sets for x1
+    X1_train, X1_test, Y_train, Y_test = train_test_split(X1_all, Y_all, test_size=0.2, random_state=42)
+
+    # Now, X1_train contains your x1 data from all the processed MAT files, and Y_train contains
+    # the modified DX_GROUP values corresponding to the x1 data.
+
+    # Load x2 data using the same test split indices as x1
+    for filename in os.listdir(mat_folder_x2):
+        if filename.endswith(".mat"):
+            subject_id = int(filename.split('.')[0].strip())
+            
+            dx_group_x2 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x2) > 0:
+                print(f"x2 - Subject ID {subject_id}: DX_GROUP {dx_group_x2[0]}")
+                
+                if dx_group_x2[0] == 1:
+                    dx_group_value_x2 = 0
+                elif dx_group_x2[0] == 2:
+                    dx_group_value_x2 = 1
+                else:
+                    dx_group_value_x2 = dx_group_x2[0]
+                
+                print(f"x2 - Modified DX_GROUP value: {dx_group_value_x2}")
+                
+                data_x2 = scipy.io.loadmat(os.path.join(mat_folder_x2, filename))
+                
+                # Append data to X2_all (use the same test split indices as x1)
+                X2_all.append(data_x2)
+
+    # Split the x2 data into training and testing sets using the same indices as x1_test
+    X2_train, X2_test = train_test_split(X2_all, test_size=len(X1_test), random_state=42)
+
+    # Now, X2_train contains your x2 training data, and X2_test contains your x2 testing data,
+    # both using the same test split indices as x1_test.
+
+    # Save x1 training and testing data with labels
+    with open('../../FedBN-master/data/FL_200/SBL/train_x1.pkl', 'wb') as f:
+        pickle.dump((X1_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_200/SBL/test_x1.pkl', 'wb') as f:
+        pickle.dump((X1_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Save x2 training and testing data with labels
+    with open('../../FedBN-master/data/FL_392/SBL/train_x2.pkl', 'wb') as f:
+        pickle.dump((X2_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_392/SBL/test_x2.pkl', 'wb') as f:
+        pickle.dump((X2_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Print the shapes of the training and testing data and labels
+    print('Train x1 shape:\t', len(X1_train))
+    print('Train x2 shape:\t', len(X2_train))
+    print('Test x1 shape:\t', len(X1_test))
+    print('Test x2 shape:\t', len(X2_test))
+    print('Train labels:\t', len(Y_train))
+    print('Test labels:\t', len(Y_test))
+
+def process_SDSU():
+        # Initialize an empty DataFrame to store the subject information
+    subject_info_df = pd.read_csv('../fc/subject_info.csv')
+    X1_all = []
+    X2_all = []
+    Y_all = []
+    mat_folder_x1 = '../../FedBN-master/data/FL_200/SDSU/'
+    mat_folder_x2 = '../../FedBN-master/data/FL_392/SDSU/'
+
+    for filename in os.listdir(mat_folder_x1):
+        if filename.endswith(".mat"):
+            # Extract the subject ID from the MAT file name
+            subject_id = int(filename.split('.')[0].strip())
+            
+            # Find the corresponding DX_GROUP value in the DataFrame for x1
+            dx_group_x1 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x1) > 0:
+                print(f"x1 - Subject ID {subject_id}: DX_GROUP {dx_group_x1[0]}")
+                
+                # Modify the DX_GROUP value based on your criteria for x1
+                if dx_group_x1[0] == 1:
+                    dx_group_value_x1 = 0
+                elif dx_group_x1[0] == 2:
+                    dx_group_value_x1 = 1
+                else:
+                    dx_group_value_x1 = dx_group_x1[0]  # Keep the value unchanged
+                
+                print(f"x1 - Modified DX_GROUP value: {dx_group_value_x1}")
+                
+                # Load your data from the MAT file for x1
+                data_x1 = scipy.io.loadmat(os.path.join(mat_folder_x1, filename))
+                
+                # Append data to X1_all and modified DX_GROUP value to Y_all
+                X1_all.append(data_x1)
+                Y_all.append(dx_group_value_x1)
+            else:
+                print(f"x1 - Subject ID {subject_id} not found in the subjectinfo.csv file.")
+
+    # Split the data into training and testing sets for x1
+    X1_train, X1_test, Y_train, Y_test = train_test_split(X1_all, Y_all, test_size=0.2, random_state=42)
+
+    # Now, X1_train contains your x1 data from all the processed MAT files, and Y_train contains
+    # the modified DX_GROUP values corresponding to the x1 data.
+
+    # Load x2 data using the same test split indices as x1
+    for filename in os.listdir(mat_folder_x2):
+        if filename.endswith(".mat"):
+            subject_id = int(filename.split('.')[0].strip())
+            
+            dx_group_x2 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x2) > 0:
+                print(f"x2 - Subject ID {subject_id}: DX_GROUP {dx_group_x2[0]}")
+                
+                if dx_group_x2[0] == 1:
+                    dx_group_value_x2 = 0
+                elif dx_group_x2[0] == 2:
+                    dx_group_value_x2 = 1
+                else:
+                    dx_group_value_x2 = dx_group_x2[0]
+                
+                print(f"x2 - Modified DX_GROUP value: {dx_group_value_x2}")
+                
+                data_x2 = scipy.io.loadmat(os.path.join(mat_folder_x2, filename))
+                
+                # Append data to X2_all (use the same test split indices as x1)
+                X2_all.append(data_x2)
+
+    # Split the x2 data into training and testing sets using the same indices as x1_test
+    X2_train, X2_test = train_test_split(X2_all, test_size=len(X1_test), random_state=42)
+
+    # Now, X2_train contains your x2 training data, and X2_test contains your x2 testing data,
+    # both using the same test split indices as x1_test.
+
+    # Save x1 training and testing data with labels
+    with open('../../FedBN-master/data/FL_200/SDSU/train_x1.pkl', 'wb') as f:
+        pickle.dump((X1_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_200/SDSU/test_x1.pkl', 'wb') as f:
+        pickle.dump((X1_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Save x2 training and testing data with labels
+    with open('../../FedBN-master/data/FL_392/SDSU/train_x2.pkl', 'wb') as f:
+        pickle.dump((X2_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_392/SDSU/test_x2.pkl', 'wb') as f:
+        pickle.dump((X2_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Print the shapes of the training and testing data and labels
+    print('Train x1 shape:\t', len(X1_train))
+    print('Train x2 shape:\t', len(X2_train))
+    print('Test x1 shape:\t', len(X1_test))
+    print('Test x2 shape:\t', len(X2_test))
+    print('Train labels:\t', len(Y_train))
+    print('Test labels:\t', len(Y_test))
+
+def process_Stanford():
+        # Initialize an empty DataFrame to store the subject information
+    subject_info_df = pd.read_csv('../fc/subject_info.csv')
+    X1_all = []
+    X2_all = []
+    Y_all = []
+    mat_folder_x1 = '../../FedBN-master/data/FL_200/Stanford/'
+    mat_folder_x2 = '../../FedBN-master/data/FL_392/Stanford/'
+
+    for filename in os.listdir(mat_folder_x1):
+        if filename.endswith(".mat"):
+            # Extract the subject ID from the MAT file name
+            subject_id = int(filename.split('.')[0].strip())
+            
+            # Find the corresponding DX_GROUP value in the DataFrame for x1
+            dx_group_x1 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x1) > 0:
+                print(f"x1 - Subject ID {subject_id}: DX_GROUP {dx_group_x1[0]}")
+                
+                # Modify the DX_GROUP value based on your criteria for x1
+                if dx_group_x1[0] == 1:
+                    dx_group_value_x1 = 0
+                elif dx_group_x1[0] == 2:
+                    dx_group_value_x1 = 1
+                else:
+                    dx_group_value_x1 = dx_group_x1[0]  # Keep the value unchanged
+                
+                print(f"x1 - Modified DX_GROUP value: {dx_group_value_x1}")
+                
+                # Load your data from the MAT file for x1
+                data_x1 = scipy.io.loadmat(os.path.join(mat_folder_x1, filename))
+                
+                # Append data to X1_all and modified DX_GROUP value to Y_all
+                X1_all.append(data_x1)
+                Y_all.append(dx_group_value_x1)
+            else:
+                print(f"x1 - Subject ID {subject_id} not found in the subjectinfo.csv file.")
+
+    # Split the data into training and testing sets for x1
+    X1_train, X1_test, Y_train, Y_test = train_test_split(X1_all, Y_all, test_size=0.2, random_state=42)
+
+    # Now, X1_train contains your x1 data from all the processed MAT files, and Y_train contains
+    # the modified DX_GROUP values corresponding to the x1 data.
+
+    # Load x2 data using the same test split indices as x1
+    for filename in os.listdir(mat_folder_x2):
+        if filename.endswith(".mat"):
+            subject_id = int(filename.split('.')[0].strip())
+            
+            dx_group_x2 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x2) > 0:
+                print(f"x2 - Subject ID {subject_id}: DX_GROUP {dx_group_x2[0]}")
+                
+                if dx_group_x2[0] == 1:
+                    dx_group_value_x2 = 0
+                elif dx_group_x2[0] == 2:
+                    dx_group_value_x2 = 1
+                else:
+                    dx_group_value_x2 = dx_group_x2[0]
+                
+                print(f"x2 - Modified DX_GROUP value: {dx_group_value_x2}")
+                
+                data_x2 = scipy.io.loadmat(os.path.join(mat_folder_x2, filename))
+                
+                # Append data to X2_all (use the same test split indices as x1)
+                X2_all.append(data_x2)
+
+    # Split the x2 data into training and testing sets using the same indices as x1_test
+    X2_train, X2_test = train_test_split(X2_all, test_size=len(X1_test), random_state=42)
+
+    # Now, X2_train contains your x2 training data, and X2_test contains your x2 testing data,
+    # both using the same test split indices as x1_test.
+
+    # Save x1 training and testing data with labels
+    with open('../../FedBN-master/data/FL_200/Stanford/train_x1.pkl', 'wb') as f:
+        pickle.dump((X1_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_200/Stanford/test_x1.pkl', 'wb') as f:
+        pickle.dump((X1_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Save x2 training and testing data with labels
+    with open('../../FedBN-master/data/FL_392/Stanford/train_x2.pkl', 'wb') as f:
+        pickle.dump((X2_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_392/Stanford/test_x2.pkl', 'wb') as f:
+        pickle.dump((X2_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Print the shapes of the training and testing data and labels
+    print('Train x1 shape:\t', len(X1_train))
+    print('Train x2 shape:\t', len(X2_train))
+    print('Test x1 shape:\t', len(X1_test))
+    print('Test x2 shape:\t', len(X2_test))
+    print('Train labels:\t', len(Y_train))
+    print('Test labels:\t', len(Y_test))
+
+def process_Trinity():
+        # Initialize an empty DataFrame to store the subject information
+    subject_info_df = pd.read_csv('../fc/subject_info.csv')
+    X1_all = []
+    X2_all = []
+    Y_all = []
+    mat_folder_x1 = '../../FedBN-master/data/FL_200/Trinity/'
+    mat_folder_x2 = '../../FedBN-master/data/FL_392/Trinity/'
+
+    for filename in os.listdir(mat_folder_x1):
+        if filename.endswith(".mat"):
+            # Extract the subject ID from the MAT file name
+            subject_id = int(filename.split('.')[0].strip())
+            
+            # Find the corresponding DX_GROUP value in the DataFrame for x1
+            dx_group_x1 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x1) > 0:
+                print(f"x1 - Subject ID {subject_id}: DX_GROUP {dx_group_x1[0]}")
+                
+                # Modify the DX_GROUP value based on your criteria for x1
+                if dx_group_x1[0] == 1:
+                    dx_group_value_x1 = 0
+                elif dx_group_x1[0] == 2:
+                    dx_group_value_x1 = 1
+                else:
+                    dx_group_value_x1 = dx_group_x1[0]  # Keep the value unchanged
+                
+                print(f"x1 - Modified DX_GROUP value: {dx_group_value_x1}")
+                
+                # Load your data from the MAT file for x1
+                data_x1 = scipy.io.loadmat(os.path.join(mat_folder_x1, filename))
+                
+                # Append data to X1_all and modified DX_GROUP value to Y_all
+                X1_all.append(data_x1)
+                Y_all.append(dx_group_value_x1)
+            else:
+                print(f"x1 - Subject ID {subject_id} not found in the subjectinfo.csv file.")
+
+    # Split the data into training and testing sets for x1
+    X1_train, X1_test, Y_train, Y_test = train_test_split(X1_all, Y_all, test_size=0.2, random_state=42)
+
+    # Now, X1_train contains your x1 data from all the processed MAT files, and Y_train contains
+    # the modified DX_GROUP values corresponding to the x1 data.
+
+    # Load x2 data using the same test split indices as x1
+    for filename in os.listdir(mat_folder_x2):
+        if filename.endswith(".mat"):
+            subject_id = int(filename.split('.')[0].strip())
+            
+            dx_group_x2 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x2) > 0:
+                print(f"x2 - Subject ID {subject_id}: DX_GROUP {dx_group_x2[0]}")
+                
+                if dx_group_x2[0] == 1:
+                    dx_group_value_x2 = 0
+                elif dx_group_x2[0] == 2:
+                    dx_group_value_x2 = 1
+                else:
+                    dx_group_value_x2 = dx_group_x2[0]
+                
+                print(f"x2 - Modified DX_GROUP value: {dx_group_value_x2}")
+                
+                data_x2 = scipy.io.loadmat(os.path.join(mat_folder_x2, filename))
+                
+                # Append data to X2_all (use the same test split indices as x1)
+                X2_all.append(data_x2)
+
+    # Split the x2 data into training and testing sets using the same indices as x1_test
+    X2_train, X2_test = train_test_split(X2_all, test_size=len(X1_test), random_state=42)
+
+    # Now, X2_train contains your x2 training data, and X2_test contains your x2 testing data,
+    # both using the same test split indices as x1_test.
+
+    # Save x1 training and testing data with labels
+    with open('../../FedBN-master/data/FL_200/Trinity/train_x1.pkl', 'wb') as f:
+        pickle.dump((X1_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_200/Trinity/test_x1.pkl', 'wb') as f:
+        pickle.dump((X1_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Save x2 training and testing data with labels
+    with open('../../FedBN-master/data/FL_392/Trinity/train_x2.pkl', 'wb') as f:
+        pickle.dump((X2_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_392/Trinity/test_x2.pkl', 'wb') as f:
+        pickle.dump((X2_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Print the shapes of the training and testing data and labels
+    print('Train x1 shape:\t', len(X1_train))
+    print('Train x2 shape:\t', len(X2_train))
+    print('Test x1 shape:\t', len(X1_test))
+    print('Test x2 shape:\t', len(X2_test))
+    print('Train labels:\t', len(Y_train))
+    print('Test labels:\t', len(Y_test))
+
+def process_UCLA():
+        # Initialize an empty DataFrame to store the subject information
+    subject_info_df = pd.read_csv('../fc/subject_info.csv')
+    X1_all = []
+    X2_all = []
+    Y_all = []
+    mat_folder_x1 = '../../FedBN-master/data/FL_200/UCLA/'
+    mat_folder_x2 = '../../FedBN-master/data/FL_392/UCLA/'
+
+    for filename in os.listdir(mat_folder_x1):
+        if filename.endswith(".mat"):
+            # Extract the subject ID from the MAT file name
+            subject_id = int(filename.split('.')[0].strip())
+            
+            # Find the corresponding DX_GROUP value in the DataFrame for x1
+            dx_group_x1 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x1) > 0:
+                print(f"x1 - Subject ID {subject_id}: DX_GROUP {dx_group_x1[0]}")
+                
+                # Modify the DX_GROUP value based on your criteria for x1
+                if dx_group_x1[0] == 1:
+                    dx_group_value_x1 = 0
+                elif dx_group_x1[0] == 2:
+                    dx_group_value_x1 = 1
+                else:
+                    dx_group_value_x1 = dx_group_x1[0]  # Keep the value unchanged
+                
+                print(f"x1 - Modified DX_GROUP value: {dx_group_value_x1}")
+                
+                # Load your data from the MAT file for x1
+                data_x1 = scipy.io.loadmat(os.path.join(mat_folder_x1, filename))
+                
+                # Append data to X1_all and modified DX_GROUP value to Y_all
+                X1_all.append(data_x1)
+                Y_all.append(dx_group_value_x1)
+            else:
+                print(f"x1 - Subject ID {subject_id} not found in the subjectinfo.csv file.")
+
+    # Split the data into training and testing sets for x1
+    X1_train, X1_test, Y_train, Y_test = train_test_split(X1_all, Y_all, test_size=0.2, random_state=42)
+
+    # Now, X1_train contains your x1 data from all the processed MAT files, and Y_train contains
+    # the modified DX_GROUP values corresponding to the x1 data.
+
+    # Load x2 data using the same test split indices as x1
+    for filename in os.listdir(mat_folder_x2):
+        if filename.endswith(".mat"):
+            subject_id = int(filename.split('.')[0].strip())
+            
+            dx_group_x2 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x2) > 0:
+                print(f"x2 - Subject ID {subject_id}: DX_GROUP {dx_group_x2[0]}")
+                
+                if dx_group_x2[0] == 1:
+                    dx_group_value_x2 = 0
+                elif dx_group_x2[0] == 2:
+                    dx_group_value_x2 = 1
+                else:
+                    dx_group_value_x2 = dx_group_x2[0]
+                
+                print(f"x2 - Modified DX_GROUP value: {dx_group_value_x2}")
+                
+                data_x2 = scipy.io.loadmat(os.path.join(mat_folder_x2, filename))
+                
+                # Append data to X2_all (use the same test split indices as x1)
+                X2_all.append(data_x2)
+
+    # Split the x2 data into training and testing sets using the same indices as x1_test
+    X2_train, X2_test = train_test_split(X2_all, test_size=len(X1_test), random_state=42)
+
+    # Now, X2_train contains your x2 training data, and X2_test contains your x2 testing data,
+    # both using the same test split indices as x1_test.
+
+    # Save x1 training and testing data with labels
+    with open('../../FedBN-master/data/FL_200/UCLA/train_x1.pkl', 'wb') as f:
+        pickle.dump((X1_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_200/UCLA/test_x1.pkl', 'wb') as f:
+        pickle.dump((X1_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Save x2 training and testing data with labels
+    with open('../../FedBN-master/data/FL_392/UCLA/train_x2.pkl', 'wb') as f:
+        pickle.dump((X2_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_392/UCLA/test_x2.pkl', 'wb') as f:
+        pickle.dump((X2_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Print the shapes of the training and testing data and labels
+    print('Train x1 shape:\t', len(X1_train))
+    print('Train x2 shape:\t', len(X2_train))
+    print('Test x1 shape:\t', len(X1_test))
+    print('Test x2 shape:\t', len(X2_test))
+    print('Train labels:\t', len(Y_train))
+    print('Test labels:\t', len(Y_test))
+
+def process_UM():
+        # Initialize an empty DataFrame to store the subject information
+    subject_info_df = pd.read_csv('../fc/subject_info.csv')
+    X1_all = []
+    X2_all = []
+    Y_all = []
+    mat_folder_x1 = '../../FedBN-master/data/FL_200/UM/'
+    mat_folder_x2 = '../../FedBN-master/data/FL_392/UM/'
+
+    for filename in os.listdir(mat_folder_x1):
+        if filename.endswith(".mat"):
+            # Extract the subject ID from the MAT file name
+            subject_id = int(filename.split('.')[0].strip())
+            
+            # Find the corresponding DX_GROUP value in the DataFrame for x1
+            dx_group_x1 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x1) > 0:
+                print(f"x1 - Subject ID {subject_id}: DX_GROUP {dx_group_x1[0]}")
+                
+                # Modify the DX_GROUP value based on your criteria for x1
+                if dx_group_x1[0] == 1:
+                    dx_group_value_x1 = 0
+                elif dx_group_x1[0] == 2:
+                    dx_group_value_x1 = 1
+                else:
+                    dx_group_value_x1 = dx_group_x1[0]  # Keep the value unchanged
+                
+                print(f"x1 - Modified DX_GROUP value: {dx_group_value_x1}")
+                
+                # Load your data from the MAT file for x1
+                data_x1 = scipy.io.loadmat(os.path.join(mat_folder_x1, filename))
+                
+                # Append data to X1_all and modified DX_GROUP value to Y_all
+                X1_all.append(data_x1)
+                Y_all.append(dx_group_value_x1)
+            else:
+                print(f"x1 - Subject ID {subject_id} not found in the subjectinfo.csv file.")
+
+    # Split the data into training and testing sets for x1
+    X1_train, X1_test, Y_train, Y_test = train_test_split(X1_all, Y_all, test_size=0.2, random_state=42)
+
+    # Now, X1_train contains your x1 data from all the processed MAT files, and Y_train contains
+    # the modified DX_GROUP values corresponding to the x1 data.
+
+    # Load x2 data using the same test split indices as x1
+    for filename in os.listdir(mat_folder_x2):
+        if filename.endswith(".mat"):
+            subject_id = int(filename.split('.')[0].strip())
+            
+            dx_group_x2 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x2) > 0:
+                print(f"x2 - Subject ID {subject_id}: DX_GROUP {dx_group_x2[0]}")
+                
+                if dx_group_x2[0] == 1:
+                    dx_group_value_x2 = 0
+                elif dx_group_x2[0] == 2:
+                    dx_group_value_x2 = 1
+                else:
+                    dx_group_value_x2 = dx_group_x2[0]
+                
+                print(f"x2 - Modified DX_GROUP value: {dx_group_value_x2}")
+                
+                data_x2 = scipy.io.loadmat(os.path.join(mat_folder_x2, filename))
+                
+                # Append data to X2_all (use the same test split indices as x1)
+                X2_all.append(data_x2)
+
+    # Split the x2 data into training and testing sets using the same indices as x1_test
+    X2_train, X2_test = train_test_split(X2_all, test_size=len(X1_test), random_state=42)
+
+    # Now, X2_train contains your x2 training data, and X2_test contains your x2 testing data,
+    # both using the same test split indices as x1_test.
+
+    # Save x1 training and testing data with labels
+    with open('../../FedBN-master/data/FL_200/UM/train_x1.pkl', 'wb') as f:
+        pickle.dump((X1_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_200/UM/test_x1.pkl', 'wb') as f:
+        pickle.dump((X1_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Save x2 training and testing data with labels
+    with open('../../FedBN-master/data/FL_392/UM/train_x2.pkl', 'wb') as f:
+        pickle.dump((X2_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_392/UM/test_x2.pkl', 'wb') as f:
+        pickle.dump((X2_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Print the shapes of the training and testing data and labels
+    print('Train x1 shape:\t', len(X1_train))
+    print('Train x2 shape:\t', len(X2_train))
+    print('Test x1 shape:\t', len(X1_test))
+    print('Test x2 shape:\t', len(X2_test))
+    print('Train labels:\t', len(Y_train))
+    print('Test labels:\t', len(Y_test))
+
+def process_USM():
+        # Initialize an empty DataFrame to store the subject information
+    subject_info_df = pd.read_csv('../fc/subject_info.csv')
+    X1_all = []
+    X2_all = []
+    Y_all = []
+    mat_folder_x1 = '../../FedBN-master/data/FL_200/USM/'
+    mat_folder_x2 = '../../FedBN-master/data/FL_392/USM/'
+
+    for filename in os.listdir(mat_folder_x1):
+        if filename.endswith(".mat"):
+            # Extract the subject ID from the MAT file name
+            subject_id = int(filename.split('.')[0].strip())
+            
+            # Find the corresponding DX_GROUP value in the DataFrame for x1
+            dx_group_x1 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x1) > 0:
+                print(f"x1 - Subject ID {subject_id}: DX_GROUP {dx_group_x1[0]}")
+                
+                # Modify the DX_GROUP value based on your criteria for x1
+                if dx_group_x1[0] == 1:
+                    dx_group_value_x1 = 0
+                elif dx_group_x1[0] == 2:
+                    dx_group_value_x1 = 1
+                else:
+                    dx_group_value_x1 = dx_group_x1[0]  # Keep the value unchanged
+                
+                print(f"x1 - Modified DX_GROUP value: {dx_group_value_x1}")
+                
+                # Load your data from the MAT file for x1
+                data_x1 = scipy.io.loadmat(os.path.join(mat_folder_x1, filename))
+                
+                # Append data to X1_all and modified DX_GROUP value to Y_all
+                X1_all.append(data_x1)
+                Y_all.append(dx_group_value_x1)
+            else:
+                print(f"x1 - Subject ID {subject_id} not found in the subjectinfo.csv file.")
+
+    # Split the data into training and testing sets for x1
+    X1_train, X1_test, Y_train, Y_test = train_test_split(X1_all, Y_all, test_size=0.2, random_state=42)
+
+    # Now, X1_train contains your x1 data from all the processed MAT files, and Y_train contains
+    # the modified DX_GROUP values corresponding to the x1 data.
+
+    # Load x2 data using the same test split indices as x1
+    for filename in os.listdir(mat_folder_x2):
+        if filename.endswith(".mat"):
+            subject_id = int(filename.split('.')[0].strip())
+            
+            dx_group_x2 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x2) > 0:
+                print(f"x2 - Subject ID {subject_id}: DX_GROUP {dx_group_x2[0]}")
+                
+                if dx_group_x2[0] == 1:
+                    dx_group_value_x2 = 0
+                elif dx_group_x2[0] == 2:
+                    dx_group_value_x2 = 1
+                else:
+                    dx_group_value_x2 = dx_group_x2[0]
+                
+                print(f"x2 - Modified DX_GROUP value: {dx_group_value_x2}")
+                
+                data_x2 = scipy.io.loadmat(os.path.join(mat_folder_x2, filename))
+                
+                # Append data to X2_all (use the same test split indices as x1)
+                X2_all.append(data_x2)
+
+    # Split the x2 data into training and testing sets using the same indices as x1_test
+    X2_train, X2_test = train_test_split(X2_all, test_size=len(X1_test), random_state=42)
+
+    # Now, X2_train contains your x2 training data, and X2_test contains your x2 testing data,
+    # both using the same test split indices as x1_test.
+
+    # Save x1 training and testing data with labels
+    with open('../../FedBN-master/data/FL_200/USM/train_x1.pkl', 'wb') as f:
+        pickle.dump((X1_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_200/USM/test_x1.pkl', 'wb') as f:
+        pickle.dump((X1_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Save x2 training and testing data with labels
+    with open('../../FedBN-master/data/FL_392/USM/train_x2.pkl', 'wb') as f:
+        pickle.dump((X2_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_392/USM/test_x2.pkl', 'wb') as f:
+        pickle.dump((X2_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Print the shapes of the training and testing data and labels
+    print('Train x1 shape:\t', len(X1_train))
+    print('Train x2 shape:\t', len(X2_train))
+    print('Test x1 shape:\t', len(X1_test))
+    print('Test x2 shape:\t', len(X2_test))
+    print('Train labels:\t', len(Y_train))
+    print('Test labels:\t', len(Y_test))
+
+def process_Yale():
+        # Initialize an empty DataFrame to store the subject information
+    subject_info_df = pd.read_csv('../fc/subject_info.csv')
+    X1_all = []
+    X2_all = []
+    Y_all = []
+    mat_folder_x1 = '../../FedBN-master/data/FL_200/Yale/'
+    mat_folder_x2 = '../../FedBN-master/data/FL_392/Yale/'
+
+    for filename in os.listdir(mat_folder_x1):
+        if filename.endswith(".mat"):
+            # Extract the subject ID from the MAT file name
+            subject_id = int(filename.split('.')[0].strip())
+            
+            # Find the corresponding DX_GROUP value in the DataFrame for x1
+            dx_group_x1 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x1) > 0:
+                print(f"x1 - Subject ID {subject_id}: DX_GROUP {dx_group_x1[0]}")
+                
+                # Modify the DX_GROUP value based on your criteria for x1
+                if dx_group_x1[0] == 1:
+                    dx_group_value_x1 = 0
+                elif dx_group_x1[0] == 2:
+                    dx_group_value_x1 = 1
+                else:
+                    dx_group_value_x1 = dx_group_x1[0]  # Keep the value unchanged
+                
+                print(f"x1 - Modified DX_GROUP value: {dx_group_value_x1}")
+                
+                # Load your data from the MAT file for x1
+                data_x1 = scipy.io.loadmat(os.path.join(mat_folder_x1, filename))
+                
+                # Append data to X1_all and modified DX_GROUP value to Y_all
+                X1_all.append(data_x1)
+                Y_all.append(dx_group_value_x1)
+            else:
+                print(f"x1 - Subject ID {subject_id} not found in the subjectinfo.csv file.")
+
+    # Split the data into training and testing sets for x1
+    X1_train, X1_test, Y_train, Y_test = train_test_split(X1_all, Y_all, test_size=0.2, random_state=42)
+
+    # Now, X1_train contains your x1 data from all the processed MAT files, and Y_train contains
+    # the modified DX_GROUP values corresponding to the x1 data.
+
+    # Load x2 data using the same test split indices as x1
+    for filename in os.listdir(mat_folder_x2):
+        if filename.endswith(".mat"):
+            subject_id = int(filename.split('.')[0].strip())
+            
+            dx_group_x2 = subject_info_df.loc[subject_info_df['SUB_ID'] == subject_id, 'DX_GROUP'].values
+            if len(dx_group_x2) > 0:
+                print(f"x2 - Subject ID {subject_id}: DX_GROUP {dx_group_x2[0]}")
+                
+                if dx_group_x2[0] == 1:
+                    dx_group_value_x2 = 0
+                elif dx_group_x2[0] == 2:
+                    dx_group_value_x2 = 1
+                else:
+                    dx_group_value_x2 = dx_group_x2[0]
+                
+                print(f"x2 - Modified DX_GROUP value: {dx_group_value_x2}")
+                
+                data_x2 = scipy.io.loadmat(os.path.join(mat_folder_x2, filename))
+                
+                # Append data to X2_all (use the same test split indices as x1)
+                X2_all.append(data_x2)
+
+    # Split the x2 data into training and testing sets using the same indices as x1_test
+    X2_train, X2_test = train_test_split(X2_all, test_size=len(X1_test), random_state=42)
+
+    # Now, X2_train contains your x2 training data, and X2_test contains your x2 testing data,
+    # both using the same test split indices as x1_test.
+
+    # Save x1 training and testing data with labels
+    with open('../../FedBN-master/data/FL_200/Yale/train_x1.pkl', 'wb') as f:
+        pickle.dump((X1_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_200/Yale/test_x1.pkl', 'wb') as f:
+        pickle.dump((X1_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Save x2 training and testing data with labels
+    with open('../../FedBN-master/data/FL_392/Yale/train_x2.pkl', 'wb') as f:
+        pickle.dump((X2_train, Y_train), f, pickle.HIGHEST_PROTOCOL)
+
+    with open('../../FedBN-master/data/FL_392/Yale/test_x2.pkl', 'wb') as f:
+        pickle.dump((X2_test, Y_test), f, pickle.HIGHEST_PROTOCOL)
+
+    # Print the shapes of the training and testing data and labels
+    print('Train x1 shape:\t', len(X1_train))
+    print('Train x2 shape:\t', len(X2_train))
+    print('Test x1 shape:\t', len(X1_test))
+    print('Test x2 shape:\t', len(X2_test))
+    print('Train labels:\t', len(Y_train))
+    print('Test labels:\t', len(Y_test))
